@@ -81,15 +81,41 @@ export function calculateMonthlyMortgage(
   annualRate: number,
   termYears: number
 ): number {
-  if (principal <= 0 || annualRate <= 0 || termYears <= 0) return 0;
-  
+  if (principal <= 0 || termYears <= 0) return 0;
+  if (annualRate <= 0) return principal / (termYears * 12);
+
   const monthlyRate = annualRate / 100 / 12;
   const numPayments = termYears * 12;
-  
-  const payment = principal * (monthlyRate * Math.pow(1 + monthlyRate, numPayments)) / 
+
+  const payment = principal * (monthlyRate * Math.pow(1 + monthlyRate, numPayments)) /
                   (Math.pow(1 + monthlyRate, numPayments) - 1);
-  
+
   return payment;
+}
+
+// Returns total principal paid down over a given number of years using actual amortization schedule
+export function calculatePrincipalPaidDown(
+  principal: number,
+  annualRate: number,
+  termYears: number,
+  overYears: number
+): number {
+  if (principal <= 0 || termYears <= 0) return 0;
+  if (annualRate <= 0) return (principal / (termYears * 12)) * overYears * 12;
+
+  const monthlyRate = annualRate / 100 / 12;
+  const monthlyPayment = calculateMonthlyMortgage(principal, annualRate, termYears);
+
+  let balance = principal;
+  const months = Math.min(overYears * 12, termYears * 12);
+
+  for (let i = 0; i < months; i++) {
+    const interestPortion = balance * monthlyRate;
+    const principalPortion = monthlyPayment - interestPortion;
+    balance -= principalPortion;
+  }
+
+  return principal - Math.max(balance, 0);
 }
 
 export function calculateLTR(property: PropertyInputs, ltr: LTRInputs): LTRResults {
@@ -135,12 +161,14 @@ export function calculateLTR(property: PropertyInputs, ltr: LTRInputs): LTRResul
   const propertyValueYear5 = property.purchasePrice * Math.pow(1 + appreciationRate, 5);
   const propertyValueYear10 = property.purchasePrice * Math.pow(1 + appreciationRate, 10);
   
-  // Principal paydown (simplified)
-  const annualPrincipalPaydown = loanAmount / property.loanTermYears;
-  
-  const equityYear1 = downPayment + annualPrincipalPaydown + (propertyValueYear1 - property.purchasePrice);
-  const equityYear5 = downPayment + (annualPrincipalPaydown * 5) + (propertyValueYear5 - property.purchasePrice);
-  const equityYear10 = downPayment + (annualPrincipalPaydown * 10) + (propertyValueYear10 - property.purchasePrice);
+  // Principal paydown (actual amortization)
+  const principalPaid1 = calculatePrincipalPaidDown(loanAmount, property.interestRate, property.loanTermYears, 1);
+  const principalPaid5 = calculatePrincipalPaidDown(loanAmount, property.interestRate, property.loanTermYears, 5);
+  const principalPaid10 = calculatePrincipalPaidDown(loanAmount, property.interestRate, property.loanTermYears, 10);
+
+  const equityYear1 = downPayment + principalPaid1 + (propertyValueYear1 - property.purchasePrice);
+  const equityYear5 = downPayment + principalPaid5 + (propertyValueYear5 - property.purchasePrice);
+  const equityYear10 = downPayment + principalPaid10 + (propertyValueYear10 - property.purchasePrice);
   
   // Calculate cumulative cash flow over 10 years with rent appreciation
   // Cash flow increases each year as rent appreciates (expenses mostly stay fixed or grow slower)
