@@ -27,14 +27,16 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchAnalyses();
-  }, []);
+    if (user) fetchAnalyses();
+  }, [user]);
 
   const fetchAnalyses = async () => {
+    if (!user) return;
     try {
       const { data, error } = await supabase
         .from('property_analyses')
         .select('id, property_address, purchase_price, name, created_at, updated_at')
+        .eq('user_id', user.id)
         .order('updated_at', { ascending: false });
 
       if (error) throw error;

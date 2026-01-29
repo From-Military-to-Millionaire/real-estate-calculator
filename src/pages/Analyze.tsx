@@ -21,6 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import topoBackdrop from '@/assets/topographic-backdrop.jpg';
+import { APP_VERSION } from '@/lib/version';
 
 const formatNumberWithCommas = (num: number): string => {
   return num.toLocaleString('en-US');
@@ -422,8 +423,8 @@ export default function Analyze() {
 
   // Build analysis data for saving
   const getAnalysisData = useCallback(() => ({
-    user_id: user?.id,
     name: analysisName,
+    app_version: APP_VERSION,
     property_address: property.address || 'Untitled Property',
     purchase_price: property.purchasePrice,
     down_payment_percent: downPaymentPercent,
@@ -526,6 +527,7 @@ export default function Analyze() {
     try {
       const analysisData = {
         ...getAnalysisData(),
+        user_id: user?.id,
         name,
         property_address: 'New Property',
       };
