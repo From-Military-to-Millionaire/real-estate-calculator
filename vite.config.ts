@@ -5,6 +5,8 @@ import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
+  // GitHub Pages serves from /real-estate-calculator/
+  base: "/real-estate-calculator/",
   server: {
     host: "::",
     port: 8080,
